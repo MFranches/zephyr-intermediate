@@ -4,7 +4,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/sensor.h>
 
-LOG_MODULE_REGISTER(demo, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(ls01, LOG_LEVEL_DBG);
 
 #define STACK_SIZE 1024
 
@@ -27,13 +27,9 @@ static char tx_buffer[TX_BUFFER_LEN] = {0};
 
 static void uart_callback(const struct device *dev, struct uart_event *evt, void *user_data)
 {
-	int rc;
-
-	LOG_INF("EVENT: %d", evt->type);
-
 	switch (evt->type) {
 	case UART_TX_DONE:
-		LOG_DBG("TX complete");
+		LOG_INF("TX complete");
 		k_sem_give(&uart_tx_sem);
 		break;
 	case UART_RX_BUF_REQUEST:
@@ -44,7 +40,7 @@ static void uart_callback(const struct device *dev, struct uart_event *evt, void
 	case UART_RX_RDY:
 		break;
 	default:
-		LOG_WRN("Unhandled event %d", evt->type);
+		break;
 	}
 }
 
@@ -88,16 +84,17 @@ void thread_a_fn(void *p1, void *p2, void *p3)
 		       sensor_value_to_double(&temp),
 		       sensor_value_to_double(&hum));
         
+        
         int lock_state = k_mutex_lock(&tx_buffer_mutex, K_FOREVER);
-	    __ASSERT_NO_MSG(lock_state == 0);
-	    ARG_UNUSED(lock_state);
-
+        
         int len = snprintf(tx_buffer, TX_BUFFER_LEN, "[A] HTU21D: %.2f Cel ; %0.2f %%RH\n",
 		       sensor_value_to_double(&temp),
 		       sensor_value_to_double(&hum));
 
         rc = uart_tx(uart1, tx_buffer, len, SYS_FOREVER_US);
+
         k_sem_take(&uart_tx_sem, K_FOREVER);
+
         k_mutex_unlock(&tx_buffer_mutex);
 
         k_msleep(TA_WAIT_PERIOD_MS);
@@ -145,12 +142,15 @@ void thread_b_fn(void *p1, void *p2, void *p3)
 		       sensor_value_to_double(&hum));
 
         int lock_state = k_mutex_lock(&tx_buffer_mutex, K_FOREVER);
+
         int len = snprintf(tx_buffer, TX_BUFFER_LEN, "[B] AHT10: %.2f Cel ; %0.2f %%RH\n",
 		       sensor_value_to_double(&temp),
 		       sensor_value_to_double(&hum));
 
         rc = uart_tx(uart1, tx_buffer, len, SYS_FOREVER_US);
+
         k_sem_take(&uart_tx_sem, K_FOREVER);
+        
         k_mutex_unlock(&tx_buffer_mutex);
 
         k_msleep(TB_WAIT_PERIOD_MS);
@@ -168,4 +168,3 @@ int main(void)
     uart_callback_set(uart1, uart_callback, NULL);
     return 0;
 }
-
