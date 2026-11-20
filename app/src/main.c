@@ -1,43 +1,39 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(demo, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(main);
 
-#define STACK_SIZE 1024
+#define K_THREAD_A_SLEEP_MS    100U
+#define K_THREAD_B_SLEEP_MS    300U
 
-#define PRIO_A 5
-#define PRIO_B 5
+#define K_THREAD_A_STACK_SIZE  1024U
+#define K_THREAD_B_STACK_SIZE  1024U
+#define K_PRIORITY_THREAD_A    1 
+#define K_PRIORITY_THREAD_B    1 
 
-void thread_a_fn(void *p1, void *p2, void *p3)
+void thread_a_fn(void* p1, void* p2, void* p3)
 {
-    int step = 0;
-
+    LOG_INF("[A] Thread A launched!!");
     while (1) {
-        LOG_INF("[A] step %d  tick=%u", step++, k_uptime_get_32());
-        k_msleep(200);
+        LOG_INF("[A] is running tick=%u", k_uptime_get_32());
+        k_msleep(K_THREAD_A_SLEEP_MS);
     }
 }
 
-void thread_b_fn(void *p1, void *p2, void *p3)
+void thread_b_fn(void* p1, void* p2, void* p3)
 {
-    int step = 0;
-
+    LOG_INF("[B] Thread B launched!!");
     while (1) {
-        LOG_INF("[B] step %d  tick=%u", step++, k_uptime_get_32());
-        k_msleep(300);
+        LOG_INF("[B] is running tick=%u", k_uptime_get_32());
+        k_msleep(K_THREAD_B_SLEEP_MS);
     }
 }
 
-K_THREAD_DEFINE(thread_a, STACK_SIZE, thread_a_fn,
-                NULL, NULL, NULL, PRIO_A, 0, 0);
-K_THREAD_DEFINE(thread_b, STACK_SIZE, thread_b_fn,
-                NULL, NULL, NULL, PRIO_B, 0, 0);
+K_THREAD_DEFINE(thread_a, K_THREAD_A_STACK_SIZE, thread_a_fn, NULL, NULL, NULL, K_PRIORITY_THREAD_A, 0, 0);
+K_THREAD_DEFINE(thread_b, K_THREAD_A_STACK_SIZE, thread_b_fn, NULL, NULL, NULL, K_PRIORITY_THREAD_B, 0, 0);
 
-int main(void)
+int main()
 {
-    LOG_INF("=== L1 Demo 1: Thread Interleaving ===");
-    LOG_INF("Thread A: priority %d, sleeps 200ms", PRIO_A);
-    LOG_INF("Thread B: priority %d, sleeps 300ms", PRIO_B);
+    LOG_INF("Application started!!");
     return 0;
 }
-
